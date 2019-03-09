@@ -22,49 +22,109 @@
             android:adjustViewBounds="true"
             android:elevation="2dp"
             android:scaleType="fitStart"
-            android:src="@drawable/base_layout" />
+            tools:src="@drawable/base_layout" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:layout_below="@+id/base_layout"
+            android:text="You can drag and zoom images!"
+            android:textAlignment="center"/>
 
         <ImageView
             android:id="@+id/element1"
-            android:layout_width="150dp"
-            android:layout_height="150dp"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
             android:layout_marginTop="300dp"
             android:adjustViewBounds="true"
-            android:scaleType="centerCrop"
-            android:src="@drawable/element1" />
+            tools:src="@drawable/placeholder_img"
+            android:visibility="invisible"/>
 
         <ImageView
             android:id="@+id/element2"
-            android:layout_width="150dp"
-            android:layout_height="150dp"
-            android:layout_marginTop="300dp"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
             android:layout_marginStart="200dp"
+            android:layout_marginTop="300dp"
             android:adjustViewBounds="true"
-            android:scaleType="centerCrop"
-            android:src="@drawable/element2" />
+            tools:src="@drawable/placeholder_img"
+            android:visibility="invisible"/>
 
     </RelativeLayout>
 
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
+    <TextView android:id="@+id/help_text"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:text="save" />
+        android:textSize="32dp"
+        android:textAlignment="center"
+        android:text="Tap Select Images to start"
+        android:layout_above="@+id/progressbar"/>
 
-    <Button
-        android:id="@+id/select_images"
-        android:layout_width="wrap_content"
+    <ProgressBar
+        android:id="@+id/progressbar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/buttons"
+        android:backgroundTint="@android:color/white"
+        android:indeterminate="true"
+        android:indeterminateTint="#1a09d6"
+        android:max="100"
+        android:visibility="invisible" />
+
+    <ImageButton android:id="@+id/clearall"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:src="@drawable/trashcan"
+        android:background="#00FFFFFF"
+        android:layout_above="@+id/progressbar"
         android:layout_alignParentEnd="true"
-        android:text="select images" />
-
-    <Button
-        android:id="@+id/share"
-        android:layout_width="wrap_content"
+        android:visibility="invisible"/>
+    <LinearLayout
+        android:id="@+id/buttons"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_centerInParent="true"
-        android:text="share" />
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/save_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:text="save"
+            android:background="@drawable/button_background"
+            android:textColor="@color/colorAccent"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:enabled="false"
+            />
+
+        <Button
+            android:id="@+id/select_images_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:text="select images"
+            android:background="@drawable/button_background"
+            android:textColor="@color/colorAccent"
+            android:layout_margin="4dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/share_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerInParent="true"
+            android:text="share"
+            android:background="@drawable/button_background"
+            android:textColor="@color/colorAccent"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:enabled="false"/>
+    </LinearLayout>
 </RelativeLayout>

@@ -2,7 +2,10 @@ package com.example.android.fotoniciaassignmentpiyush;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -20,11 +23,17 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.bumptech.glide.Glide;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -38,12 +47,22 @@ public class MainActivity extends AppCompatActivity {
     RelativeLayout relativeLayout;
     Bitmap image;
     Button save, selectImages, share;
+    ProgressBar progressBar;
+    ImageButton clearall;
+    TextView helpText;
 
-    private int xDelta;
-    private int yDelta;
 
     private static final int SELECT_PICTURE = 100;
     private static int image_set = 0;
+
+    float scalediff;
+    private static final int NONE = 0;
+    private static final int DRAG = 1;
+    private static final int ZOOM = 2;
+    private int mode = NONE;
+    private float oldDist = 1f;
+    private float d = 0f;
+    private float newRot = 0f;
 
 
     @Override
@@ -55,51 +74,55 @@ public class MainActivity extends AppCompatActivity {
         element1 = findViewById(R.id.element1);
         element2 = findViewById(R.id.element2);
         base = findViewById(R.id.base_layout);
-        relativeLayout = findViewById(R.id.relative_layout  );
+        relativeLayout = findViewById(R.id.relative_layout);
+        progressBar = findViewById(R.id.progressbar);
+        clearall = findViewById(R.id.clearall);
+        helpText = findViewById(R.id.help_text);
 
-        //resizeAndScale(element1, 350,350,471,282);
-        //resizeAndScale(element2,350,350,1914,1137);
+        Glide.with(this).load(R.drawable.base_layout).into(base);
+        Glide.with(this).load(R.drawable.placeholder_img).into(element1);
+        Glide.with(this).load(R.drawable.placeholder_img).into(element2);
 
-        save = findViewById(R.id.button);
+        save = findViewById(R.id.save_button);
 
         element1.setOnTouchListener(onTouchListener());
         element2.setOnTouchListener(onTouchListener());
 
-        selectImages = findViewById(R.id.select_images);
-        share = findViewById(R.id.share);
+        selectImages = findViewById(R.id.select_images_button);
+        share = findViewById(R.id.share_button);
+
+        clearall.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                createAlertDialog().show();
+            }
+        });
 
         selectImages.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                helpText.setVisibility(View.GONE);
                 openImageChooser();
+                save.setEnabled(true);
+                share.setEnabled(true);
             }
         });
-
-
 
         save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        base.requestLayout();
-                        int baseHeight = base.getHeight();
-                        image = viewToBitmap(relativeLayout, baseHeight);
-                        writeToStorage(image);
-
-                    }
-                }, 1000);
-
+                saveToStorage();
             }
         });
 
         share.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String text = "Look at my awesome picture";
-                File imageFile = new File(Environment.getExternalStorageDirectory()+"/piyushtest1.png");
-                Log.d("hellll", Environment.getExternalStorageDirectory()+"/piyushtest1.png");
+                saveToStorage();
+
+                String text = "Hi, have a look at this picture I created.";
+                File imageFile = new File(Environment.getExternalStorageDirectory() + "/piyush/test.png");
+                Log.d("image", Environment.getExternalStorageDirectory() + "/piyush/test.png");
                 Uri photoURI = FileProvider.getUriForFile(MainActivity.this, BuildConfig.APPLICATION_ID + ".com.example.android.fotoniciaassignmentpiyush.provider", imageFile);
                 Intent shareIntent = new Intent();
                 shareIntent.setAction(Intent.ACTION_SEND);
@@ -110,88 +133,202 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(Intent.createChooser(shareIntent, "Share images..."));
             }
         });
+    }
 
+    public void saveToStorage(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                progressBar.setVisibility(View.VISIBLE);
+                clearall.setVisibility(View.GONE);
+            }
+        });
 
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                base.requestLayout();
+                int baseHeight = base.getHeight();
+                image = viewToBitmap(relativeLayout, baseHeight);
+                writeToStorage(image);
+            }
+        }, 1000);
+    }
 
+    public AlertDialog createAlertDialog() {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        alertDialogBuilder.setTitle("Start over?");
+        alertDialogBuilder.setMessage("Would you like to start over?");
+        alertDialogBuilder.setPositiveButton("Yes",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                        runOnUiThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+
+                                element1.setVisibility(View.INVISIBLE);
+                                element2.setVisibility(View.INVISIBLE);
+                                clearall.setVisibility(View.INVISIBLE);
+                            }
+                        });
+                    }
+                });
+        alertDialogBuilder.setNegativeButton("No",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                    }
+                });
+        return (alertDialogBuilder.create());
     }
 
     private View.OnTouchListener onTouchListener() {
         return new View.OnTouchListener() {
 
-            @SuppressLint("ClickableViewAccessibility")
+            RelativeLayout.LayoutParams params;
+            int startwidth;
+            int startheight;
+            float dx = 0, dy = 0, x = 0, y = 0;
+            float angle = 0;
+
             @Override
-            public boolean onTouch(View view, MotionEvent event) {
+            public boolean onTouch(View v, MotionEvent event) {
+                final ImageView view = (ImageView) v;
 
-                final int x = (int) event.getRawX();
-                final int y = (int) event.getRawY();
-
+                ((BitmapDrawable) view.getDrawable()).setAntiAlias(true);
                 switch (event.getAction() & MotionEvent.ACTION_MASK) {
-
                     case MotionEvent.ACTION_DOWN:
                         base.setImageAlpha(150);
-                        RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams)
-                                view.getLayoutParams();
-
-                        xDelta = x - lParams.leftMargin;
-                        yDelta = y - lParams.topMargin;
+                        params = (RelativeLayout.LayoutParams) view.getLayoutParams();
+                        startwidth = params.width;
+                        startheight = params.height;
+                        dx = event.getRawX() - params.leftMargin;
+                        dy = event.getRawY() - params.topMargin;
+                        mode = DRAG;
                         break;
 
-                    case MotionEvent.ACTION_MOVE:
-                        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view
-                                .getLayoutParams();
-                        layoutParams.leftMargin = x - xDelta;
-                        layoutParams.topMargin = y - yDelta;
-                        layoutParams.rightMargin = 0;
-                            layoutParams.bottomMargin = 0;
-                        view.setLayoutParams(layoutParams);
-                        break;
+                    case MotionEvent.ACTION_POINTER_DOWN:
+                        oldDist = spacing(event);
+                        if (oldDist > 10f) {
+                            mode = ZOOM;
+                        }
 
+                        d = rotation(event);
+
+                        break;
                     case MotionEvent.ACTION_UP:
                         base.setImageAlpha(255);
+                        break;
+
+                    case MotionEvent.ACTION_POINTER_UP:
+                        mode = NONE;
+
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (mode == DRAG) {
+
+                            x = event.getRawX();
+                            y = event.getRawY();
+
+                            params.leftMargin = (int) (x - dx);
+                            params.topMargin = (int) (y - dy);
+
+                            params.rightMargin = 0;
+                            params.bottomMargin = 0;
+                            params.rightMargin = params.leftMargin + (5 * params.width);
+                            params.bottomMargin = params.topMargin + (10 * params.height);
+
+                            view.setLayoutParams(params);
+
+                        } else if (mode == ZOOM) {
+
+                            if (event.getPointerCount() == 2) {
+
+                                newRot = rotation(event);
+                                float r = newRot - d;
+                                angle = r;
+
+                                x = event.getRawX();
+                                y = event.getRawY();
+
+                                float newDist = spacing(event);
+                                if (newDist > 10f) {
+                                    float scale = newDist / oldDist * view.getScaleX();
+                                    if (scale > 0.6) {
+                                        scalediff = scale;
+                                        view.setScaleX(scale);
+                                        view.setScaleY(scale);
+
+                                    }
+                                }
+
+                                view.animate().rotationBy(angle).setDuration(0).setInterpolator(new LinearInterpolator()).start();
+
+                                x = event.getRawX();
+                                y = event.getRawY();
+
+                                params.leftMargin = (int) ((x - dx) + scalediff);
+                                params.topMargin = (int) ((y - dy) + scalediff);
+
+                                params.rightMargin = 0;
+                                params.bottomMargin = 0;
+                                params.rightMargin = params.leftMargin + (5 * params.width);
+                                params.bottomMargin = params.topMargin + (10 * params.height);
+
+                                view.setLayoutParams(params);
+
+
+                            }
+                        }
+                        break;
                 }
-                relativeLayout.invalidate();
+
                 return true;
+
             }
         };
     }
 
-    void resizeAndScale(ImageView v, int w, int h, int x, int y){
-        v.requestLayout();
-        v.getLayoutParams().height = h;
-        v.getLayoutParams().width = w;
-        v.setX(x);
-        v.setY(y);
-    }
-
 
     public Bitmap viewToBitmap(View view, int height) {
-        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), height, Bitmap.Config.RGB_565);
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         view.draw(canvas);
-        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 3600, 2400, true);
-        return resizedBitmap;
+        return Bitmap.createScaledBitmap(bitmap, 3600, 2400, true);
     }
 
-    public void writeToStorage(Bitmap bitmap){
+    public void writeToStorage(Bitmap bitmap) {
+
+
         try {
-            File dir = new File(Environment.getExternalStorageDirectory()+"/piyush/");
+            File dir = new File(Environment.getExternalStorageDirectory() + "/piyush/");
             dir.mkdirs();
 
-            File file =new File(dir+ "test1.png");
+            File file = new File(dir + "/test.png");
 
-            FileOutputStream output = new FileOutputStream(file );
+            FileOutputStream output = new FileOutputStream(file);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
             output.close();
-            Log.d("hello",file.toString());
-            Toast.makeText(getApplicationContext(),"File saved to "+ file.toString(),Toast.LENGTH_LONG ).show();
+            Log.d("hello", file.toString());
+            Toast.makeText(getApplicationContext(), "File saved to " + file.toString(), Toast.LENGTH_LONG).show();
 
-            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"
-                    + file.toString())));
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://" + file.toString())));
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
+            runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    progressBar.setVisibility(View.INVISIBLE);
+                    clearall.setVisibility(View.VISIBLE);
+                }
+            });
         }
     }
 
@@ -216,24 +353,42 @@ public class MainActivity extends AppCompatActivity {
                             String path = getPathFromURI(selectedImageUri);
                             Log.i("piyush", "Image Path : " + path);
                             // Set the image in ImageView
-                            if(image_set == 0){
-                            findViewById(R.id.element1).post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    ((ImageView) findViewById(R.id.element1)).setImageURI(selectedImageUri);
-                                }
-                            });
-                            image_set = 1;
-                            }else {
+                            if (image_set == 0) {
+                                findViewById(R.id.element1).post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Glide.with(getApplicationContext()).load(selectedImageUri).into(element1);
+                                    }
+                                });
+                                runOnUiThread(new Runnable() {
+
+                                    @Override
+                                    public void run() {
+
+                                        element1.setVisibility(View.VISIBLE);
+                                        clearall.setVisibility(View.VISIBLE);
+
+                                    }
+                                });
+                                image_set = 1;
+                            } else {
                                 findViewById(R.id.element2).post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        ((ImageView) findViewById(R.id.element2)).setImageURI(selectedImageUri);
+                                        Glide.with(getApplicationContext()).load(selectedImageUri).into(element2);
                                     }
                                 });
-                            image_set = 0;
-                            }
+                                runOnUiThread(new Runnable() {
 
+                                    @Override
+                                    public void run() {
+                                        element2.setVisibility(View.VISIBLE);
+                                        clearall.setVisibility(View.VISIBLE);
+                                    }
+                                });
+
+                                image_set = 0;
+                            }
 
 
                         }
@@ -255,6 +410,19 @@ public class MainActivity extends AppCompatActivity {
         }
         cursor.close();
         return res;
+    }
+
+    private float spacing(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
+    }
+
+    private float rotation(MotionEvent event) {
+        double delta_x = (event.getX(0) - event.getX(1));
+        double delta_y = (event.getY(0) - event.getY(1));
+        double radians = Math.atan2(delta_y, delta_x);
+        return (float) Math.toDegrees(radians);
     }
 
 }
