@@ -135,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void saveToStorage(){
+    public void saveToStorage() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
